@@ -19,5 +19,19 @@ def add_derived_features(df: pd.DataFrame) -> pd.DataFrame:
         -df["DAYS_EMPLOYED"] / 365,
         np.nan
     )
+    
+     
+    
+    df["INCOME_PER_PERSON"] = (
+        df["AMT_INCOME_TOTAL"] / df["CNT_FAM_MEMBERS"]
+    )
+
+    df["CREDIT_PER_PERSON"] = (
+        df["AMT_CREDIT"] / df["CNT_FAM_MEMBERS"]
+    )
+
+    df["EMPLOYMENT_AGE_RATIO"] = (
+        df["EMPLOYMENT_YEARS"] / df["AGE_YEARS"]
+    )
 
     return df

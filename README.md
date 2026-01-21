@@ -1,9 +1,9 @@
 # Credit Default Risk Prediction System (End-to-End ML + MLOps)
 
-An **end-to-end machine learning system** that predicts the probability of loan default using structured financial data.  
-The project is designed with **real-world constraints**, **explainability**, and **MLOps best practices** in mind.
+An **end-to-end machine learning system** that predicts the probability of loan default using structured financial data.
+The project is designed with **real-world constraints**, **feature availability governance**, **explainability**, and **MLOps best practices**.
 
-> This project intentionally focuses on **production realism**, not Kaggle-only optimizations.
+> This project intentionally prioritizes **production realism and system design** over Kaggle-only optimizations.
 
 ---
 
@@ -23,12 +23,12 @@ The dataset exhibits **severe class imbalance**, making accuracy an unreliable m
 ## 🧠 Key Objectives
 
 - Build a **realistic credit-risk model** using structured data
-- Establish a strong **baseline** and improve it incrementally
+- Explicitly govern **which features are available at inference**
+- Study **model dependence on external credit signals**
 - Ensure **explainability** for regulated decision-making
 - Track experiments and models using **MLflow**
 - Serve predictions via a **FastAPI** inference service
-- Design the system with **feature availability and drift monitoring** in mind
-
+- Design the system with **drift monitoring and retraining readiness**
 
 ---
 
@@ -46,43 +46,66 @@ Other dataset files (bureau, installments, POS, etc.) contain **historical credi
 
 ---
 
-## 🧠 Feature Governance (Very Important)
+## 🧠 Feature Governance (Core Design Principle)
 
-Features are explicitly categorized by **availability at inference time**.
+Features are **explicitly categorized** by availability and origin.
 
-### ✅ A. Real-Time Application Features (Used)
-Examples:
-- Income, credit amount, annuity
-- Age, employment duration
-- Ownership flags
+### ✅ A. Application-Time Features (Used)
 
-These are supplied by the client at request time.
+- Client-provided:
+  - Income, credit amount, family status, education, housing
+  - Contact and document flags
+- Internal system:
+  - Annuity, application timing, organization type
+- Static third-party reference:
+  - Region ratings
+  - Housing and property attributes
+
+These features are assumed to be **available at underwriting time**, either directly from the applicant or resolved upstream.
 
 ---
 
-### ✅ B. Derived Online Features (Used)
+### ✅ B. Derived Online Features (Internal Only)
 
-Computed **inside the service**, not provided by the client:
+Computed **inside the service**, never provided by the client:
 
 - Credit-to-income ratio
 - Annuity-to-income ratio
-- Age (years)
-- Employment duration (years)
+- Income per household member
+- Employment-to-age ratio
 
 > Derived features are computed centrally to ensure **determinism and tamper resistance**.
 
 ---
 
-### ❌ C. Historical / Offline Features (Excluded at Inference)
+### ❌ C. Historical / Post-Decision Features (Excluded)
 
 From files such as:
 - `bureau.csv`
 - `installments_payments.csv`
 - `POS_CASH_balance.csv`
 
-These require historical data aggregation and would be served via a **feature store** in production.
+These require historical aggregation and would be served via a **feature store** in production.
 
-> They are intentionally excluded here to avoid leakage and unrealistic assumptions.
+---
+
+## 🔬 External Credit Signal Ablation (Key Contribution)
+
+To understand **where predictive power comes from**, a structured ablation study was performed.
+
+### Ablation Models
+
+| Model | Features Used | Purpose |
+|-----|--------------|--------|
+| Application-only | Core + internal + reference | Measures intrinsic application signal |
+| External-only | EXT_SOURCE + social-circle aggregates | Measures bureau signal dominance |
+| Full model | All above | Measures maximum achievable performance |
+
+### Key Insight
+
+> External credit signals contribute a **majority of predictive power**, while application-time features provide complementary context.
+
+This dependency is **explicitly measured and documented**, rather than hidden.
 
 ---
 
@@ -94,15 +117,14 @@ These require historical data aggregation and would be served via a **feature st
 
 ### Final Model
 - **XGBoost (Gradient Boosted Trees)**
-- Better performance on tabular financial data
-- Strong compatibility with SHAP explainability
+- Strong performance on tabular financial data
+- Compatible with SHAP-based explainability
 
 ---
 
 ## 📈 Evaluation Metrics
 
-Due to class imbalance, the following metrics are used:
-
+Due to class imbalance:
 - **ROC-AUC** — ranking quality
 - **PR-AUC** — minority-class sensitivity
 
@@ -112,34 +134,37 @@ Accuracy is intentionally **not used** as a primary metric.
 
 ## 🔍 Explainability (SHAP)
 
-- **Global explanations** identify portfolio-level risk drivers
-- **Local explanations** justify individual loan decisions
-- SHAP computation and plotting are separated for **compute efficiency**
+- Global explanations identify portfolio-level risk drivers
+- Local explanations justify individual loan decisions
+- SHAP computation is performed **offline** to avoid inference latency
 
-Explainability artifacts are logged via MLflow.
+Artifacts are logged via MLflow.
 
 ---
 
 ## 🧪 Experiment Tracking (MLOps)
 
-- All models are tracked using **MLflow**
-- Logged artifacts include:
+- All experiments tracked using **MLflow**
+- Logged artifacts:
   - Parameters
   - Metrics
-  - Full preprocessing + model pipelines
-- Enables reproducibility and safe iteration
+  - Full preprocessing + model pipeline
+- Enables reproducibility and controlled iteration
 
 ---
 
 ## 🚀 Model Serving
 
 - Model is served via **FastAPI**
-- Preprocessing and derived features are applied at inference
-- SHAP is intentionally excluded from real-time serving to reduce latency
+- Inference pipeline:
+  - Raw features
+  - Derived feature layer
+  - Trained MLflow model
+- The deployed API serves the **full underwriting model**, assuming external credit signals are resolved upstream
 
-Example endpoint:
+**Endpoint**
 
-# POST /predict
+### POST /predict
 
 Returns:
 - Default probability
@@ -149,30 +174,30 @@ Returns:
 
 ## 📉 Monitoring & Drift Detection
 
-- Implemented lightweight **Population Stability Index (PSI)** checks
-- Designed to detect drift in key numeric and derived features
-- In production, these checks would run on a **scheduled basis** (cron / Airflow)
+- Implemented **Population Stability Index (PSI)** checks
+- Designed for scheduled execution (cron / Airflow)
+- Supports data drift and feature drift detection
 
 ---
 
 ## 🧠 Design Philosophy
 
 This project prioritizes:
-- Production realism
-- Explainability
-- Feature availability constraints
-- Incremental model improvement
+- Feature availability realism
+- Explicit dependency analysis
+- Explainability in regulated domains
+- Incremental, measurable improvements
 
 Over:
-- Kaggle-only optimizations
-- Unrealistic feature joins
+- Blind metric maximization
+- Unrealistic feature assumptions
 - One-off scripts
 
 ---
 
 ## 📌 Future Extensions
 
-- Add aggregated historical features via a feature store
+- Feature store integration for historical aggregates
 - Probability calibration (Platt / Isotonic)
 - Automated retraining triggers
 - Model registry–based promotion
@@ -183,5 +208,6 @@ Over:
 
 Built as a **ML engineering project** demonstrating:
 - Core ML fundamentals
+- Feature governance
 - MLOps thinking
-- System design for regulated domains
+- System design for real-world credit risk

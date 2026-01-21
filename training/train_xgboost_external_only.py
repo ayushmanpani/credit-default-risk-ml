@@ -1,34 +1,28 @@
 import pandas as pd
 import mlflow
-import mlflow.xgboost
+import mlflow.sklearn
 
 from xgboost import XGBClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import roc_auc_score, average_precision_score
-from serving.derived_features import add_derived_features
-
 
 from training.preprocessing import (
     split_data,
     split_feature_types,
     build_preprocessor
 )
-from training.feature_groups import get_feature_set
 
+from training.feature_groups import EXTERNAL_CREDIT_FEATURES
 
 DATA_PATH = "data/raw/application_train.csv"
 
 def main():
     mlflow.set_experiment("credit_default_models")
 
-    with mlflow.start_run(run_name="xgboost_v2_full_served_features"):
+    with mlflow.start_run(run_name="xgboost_external_only"):
         df = pd.read_csv(DATA_PATH)
-        df = add_derived_features(df)
 
-        FEATURES = get_feature_set(
-            include_reference=True,
-            include_external=False   # EXT_SOURCE & OBS/DEF excluded for now
-        )
+        FEATURES = EXTERNAL_CREDIT_FEATURES
 
         X_train, X_val, y_train, y_val = split_data(
             df,
@@ -40,12 +34,11 @@ def main():
             feature_cols=FEATURES
         )
 
-        
         preprocessor = build_preprocessor(numeric_cols, categorical_cols)
 
         model = XGBClassifier(
             n_estimators=300,
-            max_depth=6,
+            max_depth=5,
             learning_rate=0.05,
             subsample=0.8,
             colsample_bytree=0.8,
@@ -67,24 +60,14 @@ def main():
         roc_auc = roc_auc_score(y_val, val_probs)
         pr_auc = average_precision_score(y_val, val_probs)
 
-        # 🔹 Log parameters
-        mlflow.log_param("model_type", "xgboost")
-        mlflow.log_param("n_estimators", 300)
-        mlflow.log_param("max_depth", 6)
-        mlflow.log_param("learning_rate", 0.05)
-
-        # 🔹 Log metrics
+        mlflow.log_param("feature_group", "external_only")
         mlflow.log_metric("roc_auc", roc_auc)
         mlflow.log_metric("pr_auc", pr_auc)
 
-        # 🔹 Log model
-        mlflow.sklearn.log_model(
-            pipeline,
-            artifact_path="model"
-        )
+        mlflow.sklearn.log_model(pipeline, artifact_path="model")
 
-        print(f"XGBoost ROC-AUC: {roc_auc:.4f}")
-        print(f"XGBoost PR-AUC: {pr_auc:.4f}")
+        print(f"External-only ROC-AUC: {roc_auc:.4f}")
+        print(f"External-only PR-AUC: {pr_auc:.4f}")
 
 if __name__ == "__main__":
     main()

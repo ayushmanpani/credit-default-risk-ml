@@ -5,8 +5,8 @@ import mlflow.sklearn
 
 from fastapi import FastAPI
 from serving.schemas import CreditApplication
-from serving.feature_template import get_training_columns
 from serving.derived_features import add_derived_features
+from training.feature_groups import get_feature_set
 
 
 app = FastAPI(
@@ -17,7 +17,7 @@ app = FastAPI(
 
 MODEL_NAME = "credit_default_xgboost"
 EXPERIMENT_NAME = "credit_default_models"
-RUN_NAME = "xgboost_v1"
+RUN_NAME = "xgboost_v2_full_served_features"
 
 @app.on_event("startup")
 def load_model():
@@ -36,7 +36,14 @@ def load_model():
 
     model = mlflow.sklearn.load_model(model_uri)
 
-    TRAIN_COLUMNS = get_training_columns()
+    TRAIN_COLUMNS = get_feature_set(
+        include_reference=True,
+        include_external=False 
+        )
+    
+    print(f"Loaded model run: {RUN_NAME}")
+    print(f"Number of expected features: {len(TRAIN_COLUMNS)}")
+
 
 
 @app.post("/predict")
@@ -52,11 +59,16 @@ def predict(application: CreditApplication):
 
     full_df = add_derived_features(full_df)
     
+    missing = set(TRAIN_COLUMNS) - set(full_df.columns)
+    if missing:
+        raise ValueError(f"Missing columns at inference: {missing}")
+
+    
     probs = model.predict_proba(full_df)
     prob = float(probs[0][1])
 
     return {
         "default_probability": prob,
-        "risk_label": "HIGH" if prob >= 0.5 else "LOW"
+        "risk_label": "HIGH" if prob >= 0.6 else "LOW"
     }
 

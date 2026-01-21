@@ -4,14 +4,17 @@ def get_missing_stats(df):
     missing_ratio = df.isna().mean()
     return missing_ratio.sort_values(ascending=False)
 
-def split_feature_types(df, target_col="TARGET"):
-    numeric_cols = df.select_dtypes(include=["int64", "float64"]).columns.tolist()
-    categorical_cols = df.select_dtypes(include=["object"]).columns.tolist()
+def split_feature_types(df, feature_cols):
+    numeric_cols = df[feature_cols].select_dtypes(
+        include=["int64", "float64"]
+    ).columns.tolist()
 
-    if target_col in numeric_cols:
-        numeric_cols.remove(target_col)
+    categorical_cols = df[feature_cols].select_dtypes(
+        include=["object"]
+    ).columns.tolist()
 
     return numeric_cols, categorical_cols
+
 
 ##building the pipeline
 from sklearn.impute import SimpleImputer
@@ -42,8 +45,8 @@ def build_preprocessor(numeric_cols, categorical_cols):
 
 from sklearn.model_selection import train_test_split
 ##perform a stratified split due to severe class imbalance
-def split_data(df, target_col="TARGET", test_size=0.2, random_state=42):
-    X = df.drop(columns=[target_col])
+def split_data(df, feature_cols, target_col="TARGET", test_size=0.2, random_state=42):
+    X = df[feature_cols]
     y = df[target_col]
 
     return train_test_split(
@@ -52,3 +55,4 @@ def split_data(df, target_col="TARGET", test_size=0.2, random_state=42):
         stratify=y,
         random_state=random_state
     )
+
