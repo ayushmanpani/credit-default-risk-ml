@@ -125,162 +125,190 @@ This project emphasizes:
 }
 ```
 
-\section*{Additional Endpoint}
+---
 
-\subsection*{GET /model-info}
+## 🔍 Additional Endpoint
+
+### GET `/model-info`
 
 Returns metadata about the deployed model.
 
-\begin{verbatim}
+**Example response:**
+
+```json
 {
   "model_type": "Pipeline",
   "feature_count": 85
 }
-\end{verbatim}
-
+```
 This endpoint exposes basic model information without revealing internal artifacts.
 
 ---
 
-\section*{Model Performance}
+## 📊 Model Performance
 
-\begin{tabular}{|c|c|}
-\hline
-Metric & Value \\
-\hline
-ROC-AUC & 0.76 \\
-PR-AUC & 0.25 \\
-\hline
-\end{tabular}
+Due to severe class imbalance, evaluation focuses on ranking and minority-class sensitivity rather than raw accuracy.
 
-\vspace{0.5cm}
+| Model Variant                     | ROC-AUC | PR-AUC |
+|-----------------------------------|---------|--------|
+| Full Model (All Features)        | 0.76    | 0.25   |
+| Application-Time Deployable Model| 0.69    | 0.17   |
 
-Application-time deployable model:
+### Metric Rationale
 
-\begin{itemize}
-\item ROC-AUC $\approx$ 0.69
-\item PR-AUC $\approx$ 0.17
-\end{itemize}
+- **ROC-AUC** — Measures ranking quality across thresholds.
+- **PR-AUC** — More informative for imbalanced classification problems.
+- **Accuracy** is intentionally not used as a primary metric due to skewed class distribution.
+
+> The deployable application-time model excludes historical bureau signals, resulting in slightly lower performance but realistic inference constraints.
 
 ---
 
-\section*{Experiment Tracking (MLOps)}
+## 🧪 Experiment Tracking (MLOps)
 
-\begin{itemize}
-\item All experiments tracked using MLflow
-\item Logged artifacts:
-  \begin{itemize}
-  \item Parameters
-  \item Metrics
-  \item Full preprocessing + model pipeline
-  \end{itemize}
-\item Enables reproducibility and controlled iteration
-\end{itemize}
-
----
-
-\section*{Monitoring \& Drift Detection}
-
-\begin{itemize}
-\item Implemented Population Stability Index (PSI) checks
-\item Designed for scheduled execution (cron / Airflow)
-\item Supports feature drift and data drift detection
-\end{itemize}
+- All experiments tracked using **MLflow**
+- Logged artifacts:
+  - Hyperparameters  
+  - Evaluation metrics (ROC-AUC, PR-AUC)  
+  - Full preprocessing + model pipeline  
+- Enables full reproducibility of training runs  
+- Supports structured model comparison and controlled experimentation  
+- Provides model versioning and traceability for audit-ready workflows  
+- Allows separation of research models and deployable production models  
 
 ---
 
-\section*{Local Development}
+## 📉 Monitoring & Drift Detection
 
-\begin{verbatim}
+- Implemented **Population Stability Index (PSI)** for feature drift detection  
+- Designed to run on scheduled intervals (cron / Airflow-ready structure)  
+- Supports detection of:
+  - Feature distribution drift  
+  - Data distribution shifts  
+  - Prediction stability degradation  
+- Enables early identification of model performance decay  
+- Retraining-ready architecture for production environments  
+
+---
+
+## 🛠 Local Development
+
+Run the API locally:
+
+```bash
 cd inference
 pip install -r requirements.txt
 uvicorn app:app --reload
-\end{verbatim}
+```
 
 Swagger UI will be available at:
-
-\begin{verbatim}
+```
 http://127.0.0.1:8000/docs
-\end{verbatim}
+```
 
 ---
 
-\section*{Continuous Deployment}
+## 🔄 Continuous Deployment
 
 This project is deployed on Render.
 
 Whenever changes are pushed:
-
-\begin{verbatim}
+```bash
 git add .
 git commit -m "Update inference API"
 git push
-\end{verbatim}
+```
 
 Render automatically:
-
-\begin{itemize}
-\item Pulls latest code
-\item Rebuilds environment
-\item Restarts the service
-\end{itemize}
+  -Pulls the latest code
+  -Rebuilds the environment
+  -Restarts the service
+No manual redeployment required.
 
 ---
 
-\section*{Production Endpoints Summary}
+## 🚀 Production Endpoints Summary
 
-\subsection*{POST /predict}
+### POST `/predict`
 
-Returns:
+Generates a default risk prediction based on the full 85-feature input payload.
 
-\begin{verbatim}
+**Response:**
+
+```json
 {
   "default_probability": 0.65,
   "risk_label": "HIGH"
 }
-\end{verbatim}
+```
 
-\subsection*{GET /model-info}
+-`default_probability` → Predicted probability of loan default
+-`risk_label` → Binary risk classification (HIGH / LOW) based on threshold
 
-Returns model metadata.
+### GET `/model-info`
 
-\subsection*{GET /health}
+Returns metadata about the deployed model.
 
-Returns service status.
+**Response:**
+
+```json
+{
+  "model_type": "Pipeline",
+  "feature_count": 85
+}
+```
+
+-`model_type` → Type of trained model artifact
+-`feature_count` → Number of features expected at inference
+
+
+### GET `/health`
+
+model_type → Type of trained model artifact
+
+feature_count → Number of features expected at inference
+
+**Response:**
+
+```json
+{
+  "status": "healthy"
+}
+```
+Indicates that the API service is running and ready to serve predictions.
 
 ---
 
-\section*{Design Philosophy}
+## 🧠 Design Philosophy
 
 This project prioritizes:
 
-\begin{itemize}
-\item Feature availability realism
-\item Explicit dependency analysis
-\item Explainability in regulated domains
-\item Incremental, measurable improvements
-\item Production-ready deployment
-\end{itemize}
+- Feature availability realism  
+- Explicit dependency analysis  
+- Explainability in regulated domains  
+- Incremental, measurable improvements  
+- Training-serving separation  
+- Production-ready deployment  
 
 Over:
 
-\begin{itemize}
-\item Blind metric maximization
-\item Unrealistic feature assumptions
-\item One-off experimentation scripts
-\end{itemize}
+- Blind metric maximization  
+- Unrealistic feature assumptions  
+- One-off experimentation scripts  
+
 
 ---
 
-\section*{Author}
+## 🧑‍💼 Author
 
 Built as a machine learning engineering project demonstrating:
 
-\begin{itemize}
-\item Core ML fundamentals
-\item Feature governance
-\item MLOps thinking
-\item System design for real-world credit risk
-\item Production inference deployment
-\end{itemize}
+- Core ML fundamentals  
+- Feature governance and availability control  
+- MLOps thinking and experiment tracking  
+- Training-serving separation  
+- Explainability for regulated financial systems  
+- Production-ready cloud inference deployment  
+- Realistic system design for credit risk modeling  
+
 
