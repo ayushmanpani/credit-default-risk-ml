@@ -41,3 +41,10 @@ def predict(application: CreditApplication):
         "default_probability": float(proba),
         "risk_label": "HIGH" if proba > 0.5 else "LOW"
     }
+
+@app.get("/model-info")
+def model_info():
+    return {
+        "model_type": type(model).__name__,
+        "feature_count": len(FEATURE_NAMES)
+    }
