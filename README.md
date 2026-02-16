@@ -17,10 +17,10 @@ This project emphasizes:
 # 🌐 Live Deployment
 
 **Live API (Swagger UI):**  
-👉 https://your-render-url.onrender.com/docs  
+👉 https://credit-default-risk-ml.onrender.com/docs  
 
 **Base URL:**  
-👉 https://your-render-url.onrender.com  
+👉 https://credit-default-risk-ml.onrender.com
 
 ---
 
@@ -310,5 +310,6 @@ Built as a machine learning engineering project demonstrating:
 - Explainability for regulated financial systems  
 - Production-ready cloud inference deployment  
 - Realistic system design for credit risk modeling  
+
 
 
