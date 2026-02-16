@@ -15,9 +15,12 @@ data/processed/
 
 # MLflow
 mlruns/
+mlflow.db
 
 # OS
 .DS_Store
 
 # IDE
 .vscode/
+
+*.ipynb
